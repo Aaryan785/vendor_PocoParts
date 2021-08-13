@@ -20,6 +20,7 @@
         android:defaultValue="false"
         android:key="touch_game_mode"
         android:summary="@string/touch_game_mode_summary"
+        android:layout="@layout/octavi_preference"
         android:title="@string/touch_game_mode_title" />
 
     <org.lineageos.settings.widget.SeekBarPreference
