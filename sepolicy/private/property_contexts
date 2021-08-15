@@ -1,0 +1,3 @@
+# Device Parts
+persist.device_parts.                   u:object_r:persist_device_parts:s0
+persist.lcd.                            u:object_r:persist_lcd_prop:s0

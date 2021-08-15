@@ -1,3 +1,5 @@
+type persist_device_parts, property_type;
+type persist_lcd_prop, property_type;
 type xiaomiparts_app, domain;
 app_domain(xiaomiparts_app)
 # Access standard system services
@@ -33,3 +35,6 @@ allow xiaomiparts_app {
     mediaserver_service
     surfaceflinger_service
 }:service_manager find;
+
+get_prop(xiaomiparts_app, persist_device_parts)
+set_prop(xiaomiparts_app, persist_device_parts)
