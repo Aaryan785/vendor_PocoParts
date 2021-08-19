@@ -28,7 +28,9 @@ DEVICE_PACKAGE_OVERLAYS += \
    $(VENDOR_PATH)/overlay
 
 # Sepolicy
-BOARD_SEPOLICY_DIRS += $(VENDOR_PATH)/sepolicy
+BOARD_PLAT_PRIVATE_SEPOLICY_DIR += $(VENDOR_PATH)/sepolicy/private
+BOARD_SEPOLICY_DIRS += $(VENDOR_PATH)/sepolicy/vendor
+TARGET_SEPOLICY_DIR := msmsteppe
 
 # Vendor properties
 include $(VENDOR_PATH)/vendor_prop.mk
