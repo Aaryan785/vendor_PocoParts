@@ -35,6 +35,7 @@ import com.xiaomi.parts.speaker.ClearSpeakerActivity;
 import com.xiaomi.parts.preferences.CustomSeekBarPreference;
 import com.xiaomi.parts.preferences.SecureSettingListPreference;
 import com.xiaomi.parts.preferences.SecureSettingSwitchPreference;
+import com.xiaomi.parts.R;
 
 public class DeviceSettings extends PreferenceFragment implements
         Preference.OnPreferenceChangeListener {
@@ -87,7 +88,7 @@ public class DeviceSettings extends PreferenceFragment implements
         switch (key) {
             case PREF_KEY_FPS_INFO:
                 boolean enabled = (Boolean) value;
-                Intent fpsinfo = new Intent(this.getContext(), com.xiaomi.parts.FPSInfoService.class);
+                Intent fpsinfo = new Intent(this.getContext(), FPSInfoService.class);
                 if (enabled) {
                     this.getContext().startService(fpsinfo);
                 } else {
