@@ -25,18 +25,22 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.provider.Settings;
 import android.service.dreams.DreamService;
 import android.service.dreams.IDreamManager;
+import android.view.ContextThemeWrapper;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.util.Log;
+import android.util.TypedValue;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -55,8 +59,23 @@ public class FPSInfoService extends Service {
     private Thread mCurFPSThread;
     private final String TAG = "FPSInfoService";
     private String mFps = null;
+    private int mPosition;
 
     private static final String MEASURED_FPS = "/sys/class/drm/sde-crtc-0/measured_fps";
+
+    private static final String POSITION_KEY = "device_settings_fps_position";
+    private static final String COLOR_KEY = "device_settings_fps_color";
+    private static final String SIZE_KEY = "device_settings_fps_text_size";
+
+    private static final int POSITION_TOP_LEFT = 0;
+    private static final int POSITION_TOP_CENTER = 1;
+    private static final int POSITION_TOP_RIGHT = 2;
+    private static final int POSITION_BOTTOM_LEFT = 3;
+    private static final int POSITION_BOTTOM_CENTER = 4;
+    private static final int POSITION_BOTTOM_RIGHT = 5;
+
+    private static final int[] colorArray = {Color.GREEN, Color.RED, Color.BLUE, Color.YELLOW, Color.BLACK};
+    private static final int[] sizeArray = {16, 18, 20, 22, 24};
 
     private IDreamManager mDreamManager;
 
@@ -64,7 +83,7 @@ public class FPSInfoService extends Service {
         private Paint mOnlinePaint;
         private float mAscent;
         private int mFH;
-        private int mMaxWidth = 0;
+        private int mMaxWidth;
 
         private int mNeededWidth;
         private int mNeededHeight;
@@ -73,9 +92,9 @@ public class FPSInfoService extends Service {
 
         private Handler mCurFPSHandler = new Handler() {
             public void handleMessage(Message msg) {
-                if(msg.obj == null || msg.what != 1) {
+                if(msg.obj == null || msg.what != 1)
                     return;
-                }
+
                 mFps = parseMeasuredFps((String) msg.obj);
                 mDataAvail = true;
                 updateDisplay();
@@ -85,27 +104,33 @@ public class FPSInfoService extends Service {
         FPSView(Context c) {
             super(c);
             float density = c.getResources().getDisplayMetrics().density;
-            int paddingPx = Math.round(9 * density);
+            int paddingPx = Math.round(10 * density);
             setPadding(paddingPx, paddingPx, paddingPx, paddingPx);
             setBackgroundColor(Color.argb(0x0, 0, 0, 0));
 
-            final int textSize = Math.round(15 * density);
+            final int textSize = Math.round(getSize(c) * density);
 
-            Typeface typeface = Typeface.create("googlesans", Typeface.BOLD);
+            Typeface typeface = Typeface.create("google-sans", Typeface.BOLD);
 
             mOnlinePaint = new Paint();
             mOnlinePaint.setTypeface(typeface);
             mOnlinePaint.setAntiAlias(true);
             mOnlinePaint.setTextSize(textSize);
-            mOnlinePaint.setColor(Color.WHITE);
+
+            int mColorIndex = getColorIndex(c);
+            if (mColorIndex < colorArray.length) {
+                mOnlinePaint.setColor(colorArray[mColorIndex]);
+            } else {
+                mOnlinePaint.setColor(getColorAccent(c));
+            }
             mOnlinePaint.setShadowLayer(5.0f, 0.0f, 0.0f, Color.BLACK);
 
             mAscent = mOnlinePaint.ascent();
             float descent = mOnlinePaint.descent();
-            mFH = (int)(descent - mAscent + .5f);
+            mFH = (int) (descent - mAscent + .5f);
 
             final String maxWidthStr = "FPS: XYZ";
-            mMaxWidth = (int)mOnlinePaint.measureText(maxWidthStr);
+            mMaxWidth = (int) mOnlinePaint.measureText(maxWidthStr);
 
             updateDisplay();
         }
@@ -139,17 +164,16 @@ public class FPSInfoService extends Service {
             }
 
             final int W = mNeededWidth;
-            final int RIGHT = getWidth()-1;
+            final int LEFT = getWidth() - 1;
 
-            int x = RIGHT - mPaddingLeft;
+            int x = LEFT - mPaddingLeft;
             int top = mPaddingTop + 2;
-            int bottom = mPaddingTop + mFH - 2;
 
-            int y = mPaddingTop - (int)mAscent;
+            int y = mPaddingTop - (int) mAscent;
 
-            String s=getFPSInfoString();
-            canvas.drawText(s, RIGHT-mPaddingLeft-mMaxWidth,
-                    y-1, mOnlinePaint);
+            String s = getFPSInfoString();
+            canvas.drawText(s, x - mMaxWidth,
+                    y - 1, mOnlinePaint);
             y += mFH;
         }
 
@@ -164,17 +188,22 @@ public class FPSInfoService extends Service {
             return "FPS: " + result;
         }
 
+        private int getColorAccent(Context context) {
+            TypedValue typedValue = new TypedValue();
+            ContextThemeWrapper contextThemeWrapper = new ContextThemeWrapper(context,
+                    android.R.style.Theme_DeviceDefault);
+            contextThemeWrapper.getTheme().resolveAttribute(android.R.attr.colorAccent,
+                    typedValue, true);
+            return typedValue.data; 
+        }
+
         void updateDisplay() {
             if (!mDataAvail) {
                 return;
             }
 
-            if (mOnlinePaint != null) {
-                mMaxWidth = (int) mOnlinePaint.measureText(mFps);
-            }
-
-            int neededWidth = mPaddingLeft + mPaddingRight + mMaxWidth;
-            int neededHeight = mPaddingTop + mPaddingBottom + 40;
+            int neededWidth = mPaddingLeft + mPaddingRight + mMaxWidth + 40;
+            int neededHeight = mPaddingTop + mPaddingBottom + 70;  //In case incomplete display on largest display size.
             if (neededWidth != mNeededWidth || neededHeight != mNeededHeight) {
                 mNeededWidth = neededWidth;
                 mNeededHeight = neededHeight;
@@ -194,7 +223,7 @@ public class FPSInfoService extends Service {
         private Handler mHandler;
 
         public CurFPSThread(Handler handler){
-            mHandler=handler;
+            mHandler = handler;
         }
 
         public void interrupt() {
@@ -205,8 +234,8 @@ public class FPSInfoService extends Service {
         public void run() {
             try {
                 while (!mInterrupt) {
-                    sleep(500);
-                    StringBuffer sb=new StringBuffer();
+                    sleep(1000);
+                    StringBuffer sb = new StringBuffer();
                     String fpsVal = FPSInfoService.readOneLine(MEASURED_FPS);
                     mHandler.sendMessage(mHandler.obtainMessage(1, fpsVal));
                 }
@@ -228,8 +257,30 @@ public class FPSInfoService extends Service {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|
             WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
             PixelFormat.TRANSLUCENT);
-        params.y = 50;
-        params.gravity = Gravity.RIGHT | Gravity.TOP;
+
+        mPosition = getPosition(this);
+        switch (mPosition) {
+            case POSITION_TOP_LEFT:
+                params.gravity = Gravity.LEFT | Gravity.TOP;
+                break;
+            case POSITION_TOP_CENTER:
+                params.gravity = Gravity.CENTER | Gravity.TOP;
+                break;
+            case POSITION_TOP_RIGHT:
+                params.gravity = Gravity.RIGHT | Gravity.TOP;
+                break;
+            case POSITION_BOTTOM_LEFT:
+                params.gravity = Gravity.LEFT | Gravity.BOTTOM;
+                break;
+            case POSITION_BOTTOM_CENTER:
+                params.gravity = Gravity.CENTER | Gravity.BOTTOM;
+                break;
+            case POSITION_BOTTOM_RIGHT:
+                params.gravity = Gravity.RIGHT | Gravity.BOTTOM;
+                break;
+            default:
+                break;
+        }
         params.setTitle("FPS Info");
 
         startThread();
@@ -240,7 +291,7 @@ public class FPSInfoService extends Service {
         screenStateFilter.addAction(Intent.ACTION_SCREEN_OFF);
         registerReceiver(mScreenStateReceiver, screenStateFilter);
 
-        WindowManager wm = (WindowManager)getSystemService(WINDOW_SERVICE);
+        WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         wm.addView(mView, params);
     }
 
@@ -248,7 +299,7 @@ public class FPSInfoService extends Service {
     public void onDestroy() {
         super.onDestroy();
         stopThread();
-        ((WindowManager)getSystemService(WINDOW_SERVICE)).removeView(mView);
+        ((WindowManager) getSystemService(WINDOW_SERVICE)).removeView(mView);
         mView = null;
         unregisterReceiver(mScreenStateReceiver);
     }
@@ -318,5 +369,45 @@ public class FPSInfoService extends Service {
             }
         }
         mCurFPSThread = null;
+    }
+
+    private static int getPosition(Context context) {
+        return Settings.System.getInt(context.getContentResolver(), POSITION_KEY, POSITION_TOP_LEFT);
+    }
+
+    public static void setPosition(Context context, int position) {
+        Settings.System.putInt(context.getContentResolver(), POSITION_KEY, position);
+    }
+
+    public static boolean isPositionChanged(Context context, int position) {
+        return getPosition(context) != position;
+    }
+
+    private static int getColorIndex(Context context) {
+        return Settings.System.getInt(context.getContentResolver(), COLOR_KEY, 0);
+    }
+
+    public static void setColorIndex(Context context, int index) {
+        Settings.System.putInt(context.getContentResolver(), COLOR_KEY, index);
+    }
+
+    public static boolean isColorChanged(Context context, int index) {
+        return getColorIndex(context) != index;
+    }
+
+    private static int getSizeIndex(Context context) {
+        return Settings.System.getInt(context.getContentResolver(), SIZE_KEY, 2);
+    }
+
+    private static int getSize(Context context) {
+        return sizeArray[getSizeIndex(context)];
+    }
+
+    public static void setSizeIndex(Context context, int index) {
+        Settings.System.putInt(context.getContentResolver(), SIZE_KEY, index);
+    }
+
+    public static boolean isSizeChanged(Context context, int index) {
+        return getSizeIndex(context) != index;
     }
 }
