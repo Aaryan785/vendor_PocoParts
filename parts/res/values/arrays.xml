@@ -43,4 +43,16 @@
         <item>226 215 255 35 40 119 132 10</item>
         <item>240 230 220 35 40 119 132 10</item>
     </array>
+
+    <string-array name="device_refresh_rates">
+        <item>60 Hz - 60 Hz</item>
+        <item>60 Hz - 120 Hz</item>
+        <item>120 Hz - 120 Hz</item>
+    </string-array>
+    <string-array name="device_refresh_rates_val">
+        <item>60-60</item>
+        <item>60-120</item>
+        <item>120-120</item>
+    </string-array>
+
 </resources>

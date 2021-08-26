@@ -20,9 +20,17 @@ package org.lineageos.settings;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ComponentName;
+import android.content.pm.PackageManager;
+import android.content.SharedPreferences;
+import android.os.Handler;
 import android.util.Log;
 import android.provider.Settings;
 
+import androidx.preference.PreferenceManager;
+
+import org.lineageos.settings.Constants;
+import org.lineageos.settings.utils.DisplayUtils;
 import org.lineageos.settings.utils.FileUtils;
 import org.lineageos.settings.haptic.HapticUtils;
 import org.lineageos.settings.thermal.ThermalUtils;
@@ -60,6 +68,7 @@ public class BootCompletedReceiver extends BroadcastReceiver implements Controll
             FileUtils.setValue(KCAL_HUE, Settings.Secure.getInt(context.getContentResolver(),
                     PREF_HUE, HUE_DEFAULT));
         }
+        DisplayUtils.updateRefreshRateSettings(context);
         ThermalUtils.startService(context);
         TouchSamplingUtils.restoreSamplingValue(context);
         HapticUtils.restoreLevel(context);
