@@ -21,7 +21,7 @@ PRODUCT_COPY_FILES += \
     $(VENDOR_PATH)/PocoParts/privapp-permissions-parts.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/privapp-permissions-parts.xml
 
 PRODUCT_COPY_FILES += \
-    $(VENDOR_PATH)/init/init.pocoparts.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.pocoparts.rc
+    $(LOCAL_PATH)/init/init.pocoparts.rc:$(TARGET_COPY_OUT_PRODUCT)/etc/init/init.pocoparts.rc
 
 PRODUCT_PRODUCT_PROPERTIES += \
     persist.lcd.cabc_mode=1
