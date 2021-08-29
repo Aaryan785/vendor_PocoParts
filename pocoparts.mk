@@ -35,5 +35,6 @@ BOARD_PLAT_PRIVATE_SEPOLICY_DIR += $(VENDOR_PATH)/sepolicy/private
 BOARD_SEPOLICY_DIRS += $(VENDOR_PATH)/sepolicy/vendor
 TARGET_SEPOLICY_DIR := msmsteppe
 
-# Vendor properties
-include $(VENDOR_PATH)/vendor_prop.mk
+# Properties
+TARGET_SYSTEM_EXT_PROP += $(VENDOR_PATH)/system_ext.prop
+TARGET_VENDOR_PROP += $(VENDOR_PATH)/vendor.prop
